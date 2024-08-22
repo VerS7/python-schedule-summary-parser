@@ -39,7 +39,7 @@ class Summary:
         for teacher in teachers:
             t_data = self._parse_total(self._get_response(teacher["URL"]))
             summary.append({"ФИО": teacher["ФИО"],
-                            "Группы": [d["Группа"] for d in t_data],
+                            "Группы": list(set([d["Группа"] for d in t_data])),
                             "Дисциплины": list(set([d["Дисциплина"] for d in t_data])),
                             "Сумм. часов": sum([d["Часы"] for d in t_data])})
         return summary
