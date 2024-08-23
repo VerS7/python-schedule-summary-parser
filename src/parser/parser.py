@@ -9,14 +9,12 @@ from bs4 import BeautifulSoup
 URL_TEMPLATE = "https://shedule.uni-dmitrov.ru/20{FROM}{TO}_{SEMESTER}"
 
 
-def format_retrospective(parsed: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Форматирует данные с ретроспективы в единый список для экспорта"""
+def format_data(parsed: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Форматирует данные с итогов или ретроспективы в единый список для экспорта"""
     result = []
 
     for elem in parsed:
-        for data in elem["data"]:
-            result.append({**data, "отрезок": int(f"{elem['from']}{elem['to']}"), "семестр": elem["semester"]})
-
+        result.append({**elem["data"], "отрезок": int(f"{elem['from']}{elem['to']}"), "семестр": elem["semester"]})
     return result
 
 
@@ -43,7 +41,7 @@ class Summary:
                              "URL": self._url + f"/{row.attrs['href']}"})
         return teachers
 
-    def parse_summary(self) -> List[Dict[str, str]]:
+    def parse_summary(self) -> List[Dict[str, Any]]:
         """Парсит всю информацию по всем преподам"""
         teachers = self.parse_all_teachers()
         summary = []
@@ -53,13 +51,20 @@ class Summary:
             groups = list(set([d["Группа"] for d in t_data]))
             disciples = list(set([d["Дисциплина"] for d in t_data]))
 
-            summary.append({"ФИО": teacher["ФИО"],
-                            "Группы": groups,
-                            "Кол-во групп": len(groups),
-                            "Дисциплины": disciples,
-                            "Кол-во дисциплин": len(disciples),
-                            "Сумм. часов": sum([d["Часы"] for d in t_data])})
+            summary.append({"from": self.from_,
+                            "to": self.to_,
+                            "semester": self.semester,
+                            "data": {"ФИО": teacher["ФИО"],
+                                     "Группы": groups,
+                                     "Кол-во групп": len(groups),
+                                     "Дисциплины": disciples,
+                                     "Кол-во дисциплин": len(disciples),
+                                     "Сумм. часов": sum([d["Часы"] for d in t_data])}})
         return summary
+
+    def parse_format_summary(self) -> List[Dict[str, Any]]:
+        """Форматирует данные с итогов в единый список для экспорта"""
+        return format_data(self.parse_summary())
 
     def _get_response(self, url: str) -> Response:
         response = self._session.post(url)
@@ -98,10 +103,8 @@ class SummaryRetrospective:
 
         for i in range(self.from_, self.to_):
             try:
-                summaries.append({"from": i, "to": i + 1, "semester": 1,
-                                  "data": Summary(i, i + 1, 1).parse_summary()})
-                summaries.append({"from": i, "to": i + 1, "semester": 2,
-                                  "data": Summary(i, i + 1, 2).parse_summary()})
+                summaries.extend(Summary(i, i + 1, 1).parse_summary())
+                summaries.extend(Summary(i, i + 1, 2).parse_summary())
             except HTTPError:
                 continue
 
@@ -109,4 +112,4 @@ class SummaryRetrospective:
 
     def parse_format_retrospective(self) -> List[Dict[str, Any]]:
         """Форматирует данные с ретроспективы в единый список для экспорта"""
-        return format_retrospective(self.parse_retrospective())
+        return format_data(self.parse_retrospective())

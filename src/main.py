@@ -13,7 +13,7 @@ from parser.xlswriter import XLSWriter
 #
 # print(f"Начинаем парсить...")
 # # Занимает некоторое время. !!! Возможен отвал если сайт словит много запросов за раз, но я не проверял
-# data = summary.parse_summary()
+# data = summary.parse_format_summary()
 # print(f"Парсинг завершен!")
 #
 # writer = XLSWriter(data=data, metadata={"from": from_, "to": to_, "semester": semester})
