@@ -23,13 +23,13 @@ def _decode(text: str) -> str:
 
 
 class Summary:
-    def __init__(self, from_: int, to_: int, semester: int):
+    def __init__(self, from_: int, to_: int, semester: int, session: Session = Session()):
         self.from_ = from_
         self.to_ = to_
         self.semester = semester
         self._url = self._generate_url()
 
-        self._session = Session()
+        self._session = session
 
     def parse_all_teachers(self) -> List[Dict[str, str]]:
         """Парсит ФИО преподавателей и URL на итоги"""
@@ -93,9 +93,11 @@ class Summary:
 
 
 class SummaryRetrospective:
-    def __init__(self, from_: int, to_: int):
+    def __init__(self, from_: int, to_: int, session: Session = Session()):
         self.from_ = from_
         self.to_ = to_
+
+        self._session = session
 
     def parse_retrospective(self) -> List[Dict[str, Any]]:
         """Парсит всю информацию по всем преподам и всем семестрам за определённый период"""
@@ -103,8 +105,8 @@ class SummaryRetrospective:
 
         for i in range(self.from_, self.to_):
             try:
-                summaries.extend(Summary(i, i + 1, 1).parse_summary())
-                summaries.extend(Summary(i, i + 1, 2).parse_summary())
+                summaries.extend(Summary(i, i + 1, 1, session=self._session).parse_summary())
+                summaries.extend(Summary(i, i + 1, 2, session=self._session).parse_summary())
             except HTTPError:
                 continue
 
