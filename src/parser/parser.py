@@ -32,7 +32,7 @@ class Summary:
                              "URL": self._url + f"/{row.attrs['href']}"})
         return teachers
 
-    def parse_summary(self):
+    def parse_summary(self) -> List[Dict[str, str]]:
         """Парсит всю информацию по всем преподам"""
         teachers = self.parse_all_teachers()
         summary = []
