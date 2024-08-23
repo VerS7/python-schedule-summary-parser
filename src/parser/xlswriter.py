@@ -31,8 +31,7 @@ class XLSWriter:
     def write(self):
         """Записывает данные из data в файл"""
         for i in range(len(self.data)):
-            self._ws.cell(row=i + 1, column=1, value=self.data[i]["ФИО"])
-            self._ws.cell(row=i + 1, column=2, value=self.data[i]["Сумм. часов"])
-            self._ws.cell(row=i + 1, column=3, value=", ".join(self.data[i]["Дисциплины"]))
-            self._ws.cell(row=i + 1, column=4, value=", ".join(self.data[i]["Группы"]))
+            for j, key in enumerate(self.data[0].keys()):
+                value = self.data[i][key] if not isinstance(self.data[i][key], list) else ", ".join(self.data[i][key])
+                self._ws.cell(row=i + 1, column=j + 1, value=value)
         self._wb.save(self.full_path)

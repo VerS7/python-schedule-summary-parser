@@ -1,12 +1,23 @@
 """
 Парсер итогов по преподам из https://shedule.uni-dmitrov.ru/
 """
-from typing import List, Dict
+from typing import List, Dict, Any
 
 from requests import Session, Response, HTTPError
 from bs4 import BeautifulSoup
 
 URL_TEMPLATE = "https://shedule.uni-dmitrov.ru/20{FROM}{TO}_{SEMESTER}"
+
+
+def format_retrospective(parsed: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Форматирует данные с ретроспективы в единый список для экспорта"""
+    result = []
+
+    for elem in parsed:
+        for data in elem["data"]:
+            result.append({**data, "отрезок": int(f"{elem['from']}{elem['to']}"), "семестр": elem["semester"]})
+
+    return result
 
 
 def _decode(text: str) -> str:
@@ -38,9 +49,15 @@ class Summary:
         summary = []
         for teacher in teachers:
             t_data = self._parse_total(self._get_response(teacher["URL"]))
+
+            groups = list(set([d["Группа"] for d in t_data]))
+            disciples = list(set([d["Дисциплина"] for d in t_data]))
+
             summary.append({"ФИО": teacher["ФИО"],
-                            "Группы": list(set([d["Группа"] for d in t_data])),
-                            "Дисциплины": list(set([d["Дисциплина"] for d in t_data])),
+                            "Группы": groups,
+                            "Кол-во групп": len(groups),
+                            "Дисциплины": disciples,
+                            "Кол-во дисциплин": len(disciples),
                             "Сумм. часов": sum([d["Часы"] for d in t_data])})
         return summary
 
@@ -68,3 +85,28 @@ class Summary:
     def _generate_url(self) -> str:
         args = {"FROM": self.from_, "TO": self.to_, "SEMESTER": self.semester}
         return URL_TEMPLATE.format(**args)
+
+
+class SummaryRetrospective:
+    def __init__(self, from_: int, to_: int):
+        self.from_ = from_
+        self.to_ = to_
+
+    def parse_retrospective(self) -> List[Dict[str, Any]]:
+        """Парсит всю информацию по всем преподам и всем семестрам за определённый период"""
+        summaries = []
+
+        for i in range(self.from_, self.to_):
+            try:
+                summaries.append({"from": i, "to": i + 1, "semester": 1,
+                                  "data": Summary(i, i + 1, 1).parse_summary()})
+                summaries.append({"from": i, "to": i + 1, "semester": 2,
+                                  "data": Summary(i, i + 1, 2).parse_summary()})
+            except HTTPError:
+                continue
+
+        return summaries
+
+    def parse_format_retrospective(self) -> List[Dict[str, Any]]:
+        """Форматирует данные с ретроспективы в единый список для экспорта"""
+        return format_retrospective(self.parse_retrospective())
