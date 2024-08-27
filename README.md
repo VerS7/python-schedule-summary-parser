@@ -1,8 +1,8 @@
-# Парсер итогов по преподователям из https://shedule.uni-dmitrov.ru
+# Парсер итогов по преподователям из <https://shedule.uni-dmitrov.ru>
 
 ## Использование
 
-### Для конкретного года и семестра
+### Основная информация для конкретного года и семестра
 
 ```python
 # -- Парсинг конкретного года и семестра --
@@ -20,9 +20,11 @@ summary = Summary(from_, to_, semester)
 data = summary.parse_summary()
 
 print(data)
+# {"from": ..., "to": ..., "semester": ...,
+# "data": {"ФИО": ...,"Группы": ...,"Кол-во групп": ...,"Дисциплины": ...,"Кол-во дисциплин": ...,"Сумм. часов": ...}}
 ```
 
-### Для периода с одного года по другой (Оба семестра)
+### Основная информация для периода с одного года по другой (Оба семестра)
 
 ```python
 # -- Парсинг периода --
@@ -38,6 +40,33 @@ retrospective = SummaryRetrospective(from_, to_)
 data = retrospective.parse_retrospective()
 
 print(data)
+# {"from": ..., "to": ..., "semester": ...,
+# "data": {"ФИО": ...,"Группы": ...,"Кол-во групп": ...,"Дисциплины": ...,"Кол-во дисциплин": ...,"Сумм. часов": ...}}
+```
+
+### Вся информация
+
+```python
+# -- Парсинг всей информации --
+from parser.parser import Summary, SummaryRetrospective
+
+from_ = 21  # год начала (21, 22...);
+to_ = 24  # год конца (23, 24...);
+
+# Парсеры
+summary = Summary(23, 24, 1)
+retrospective = SummaryRetrospective(from_, to_)
+
+print(f"Начинаем парсить период и основные данные...")
+
+data1 = summary.parse_format_all()
+data2 = retrospective.parse_format_retrospective_all()
+
+print(f"Вся информация за 23-24 год 1 семестр.")
+print(data1)
+
+print(f"Вся информация за {from_}-{to_} годы.")
+print(data2)
 ```
 
 ### Экспорт в .xls
@@ -73,6 +102,6 @@ writer2.write()
 ## Requirements
 
 > - Python 3.10+
->   - beautifulsoup4
->   - openpyxl
->   - requests
+> - beautifulsoup4
+> - openpyxl
+> - requests
