@@ -4,7 +4,7 @@
 from typing import List, Dict, Any
 
 from requests import Session, Response, HTTPError
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 URL_TEMPLATE = "https://shedule.uni-dmitrov.ru/20{FROM}{TO}_{SEMESTER}"
 
@@ -100,26 +100,47 @@ class Summary:
 
         return response
 
+    def _parse_new_table(self, data: List[Tag]) -> Dict[str, Any]:
+        return {"ФИО": _decode(data[1].get_text()),
+                "Группа": _decode(data[2].get_text()),
+                "П/г": int(data[3].get_text()),
+                "Дисциплина": _decode(data[4].get_text()),
+                "Тип": _decode(data[5].get_text()),
+                "Всего, ч": int(data[6].get_text()),
+                "План, ч": int(data[7].get_text()),
+                "Факт, ч": int(data[8].get_text()),
+                "Остаток, ч": float(data[9].get_text().replace(",", ".")),
+                "План 2н, ч": float(data[10].get_text().replace(",", ".")),
+                "Факт 2н, ч": int(data[11].get_text()),
+                "Окончание": data[12].get_text()}
+
+    def _parse_old_table(self, data: List[Tag]) -> Dict[str, Any]:
+        return {"ФИО": _decode(data[1].get_text()),
+                "Группа": _decode(data[2].get_text()),
+                "П/г": int(data[3].get_text()),
+                "Дисциплина": _decode(data[4].get_text()),
+                "Тип": "",
+                "Всего, ч": int(data[5].get_text()),
+                "План, ч": int(data[6].get_text()),
+                "Факт, ч": int(data[7].get_text()),
+                "Остаток, ч": float(data[8].get_text().replace(",", ".")),
+                "План 2н, ч": float(data[9].get_text().replace(",", ".")),
+                "Факт 2н, ч": int(data[10].get_text()),
+                "Окончание": data[11].get_text()}
+
     def _parse_total(self, response: Response) -> List[Dict[str, Any]]:
         soup = BeautifulSoup(response.text, "html.parser")
         total = []
 
-        for row in soup.find("table", {"class": "inf"}).find_all("tr")[1::]:
-            data = row.find_all("td")
+        if len(soup.find("table", {"class": "inf"}).find_all("td", {"class": "hd"})) == 14:
+            # Костыльная проверка на старый/новый формат таблиц
+            parse_func = self._parse_new_table
+        else:
+            parse_func = self._parse_old_table
 
-            total.append({"ФИО": _decode(data[1].get_text()),
-                          "Группа": _decode(data[2].get_text()),
-                          "П/г": int(data[3].get_text()),
-                          "Дисциплина": _decode(data[4].get_text()),
-                          "Тип": _decode(data[5].get_text()),
-                          "Всего, ч": int(data[6].get_text()),
-                          "План, ч": int(data[7].get_text()),
-                          "Факт, ч": int(data[8].get_text()),
-                          "Остаток, ч": int(data[9].get_text()),
-                          "План 2н, ч": float(data[10].get_text().replace(",", ".")),
-                          "Факт 2н, ч": int(data[11].get_text()),
-                          "Окончание": data[12].get_text()
-                          })
+        for row in soup.find("table", {"class": "inf"}).find_all("tr")[1::]:
+            total.append(parse_func(row.find_all("td")))
+
         return total
 
     def _generate_url(self) -> str:
